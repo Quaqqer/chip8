@@ -49,18 +49,14 @@ fn main() {
         event_loop,
         window,
         game,
-        60,
+        500,
         0.1,
         |g| {
-            g.game.chip8.decrease_timers();
+            if g.number_of_updates() % 8 == 0 {
+                g.game.chip8.decrease_timers();
+            };
 
-            for _ in 0..16666 {
-                g.game.chip8.cycle();
-
-                if let chip8::State::GetKey(_) = g.game.chip8.state {
-                    break;
-                }
-            }
+            g.game.chip8.cycle();
         },
         |g| {
             let frame = g.game.pixels.frame_mut();
@@ -112,22 +108,22 @@ fn main() {
 
 fn key_to_hex(virtual_key_code: VirtualKeyCode) -> Option<u8> {
     match virtual_key_code {
-        VirtualKeyCode::Key1 => Some(0x0),
-        VirtualKeyCode::Key2 => Some(0x1),
-        VirtualKeyCode::Key3 => Some(0x2),
-        VirtualKeyCode::Key4 => Some(0x3),
+        VirtualKeyCode::Key1 => Some(0x1),
+        VirtualKeyCode::Key2 => Some(0x2),
+        VirtualKeyCode::Key3 => Some(0x3),
+        VirtualKeyCode::Key4 => Some(0xc),
         VirtualKeyCode::Q => Some(0x4),
         VirtualKeyCode::W => Some(0x5),
         VirtualKeyCode::E => Some(0x6),
-        VirtualKeyCode::R => Some(0x7),
-        VirtualKeyCode::A => Some(0x8),
-        VirtualKeyCode::S => Some(0x9),
-        VirtualKeyCode::D => Some(0xA),
-        VirtualKeyCode::F => Some(0xB),
-        VirtualKeyCode::Z => Some(0xC),
-        VirtualKeyCode::X => Some(0xD),
-        VirtualKeyCode::C => Some(0xE),
-        VirtualKeyCode::V => Some(0xF),
+        VirtualKeyCode::R => Some(0xd),
+        VirtualKeyCode::A => Some(0x7),
+        VirtualKeyCode::S => Some(0x8),
+        VirtualKeyCode::D => Some(0x9),
+        VirtualKeyCode::F => Some(0xe),
+        VirtualKeyCode::Z => Some(0xa),
+        VirtualKeyCode::X => Some(0x0),
+        VirtualKeyCode::C => Some(0xb),
+        VirtualKeyCode::V => Some(0xf),
         _ => None,
     }
 }

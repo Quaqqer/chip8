@@ -188,12 +188,12 @@ impl Chip8 {
                 self.draw(self.vr(x), self.vr(y), n);
             }
             (0xe, x, 0x9, 0xe) => {
-                if self.key_pressed[x as usize] {
+                if self.key_pressed[self.vr(x) as usize] {
                     self.pc += 2;
                 }
             }
             (0xe, x, 0xa, 0x1) => {
-                if !self.key_pressed[x as usize] {
+                if !self.key_pressed[self.vr(x) as usize] {
                     self.pc += 2;
                 }
             }
@@ -242,18 +242,33 @@ impl Chip8 {
     }
 
     fn clear_display(&mut self) {
+        println!("Clear");
         self.display.fill(false);
     }
 
     fn draw(&mut self, x_offset: u8, y_offset: u8, height: u8) {
+        self.vw(0xf, 0);
+
         for dy in 0..height {
             for dx in 0..8 {
-                if (7 - dx as usize + x_offset as usize) < 64
-                    && (dy as usize + y_offset as usize) < 32
-                {
-                    self.display[(dy as usize + y_offset as usize) * 64
-                        + (7 - dx as usize + x_offset as usize)] |=
-                        (self.mem[self.i as usize + dy as usize] >> dx) & 0x1 == 0x1;
+                let x = (x_offset as usize + dx as usize) % 64;
+                let y = (y_offset as usize + dy as usize) % 32;
+
+                if !(x < 64 && y < 32) {
+                    continue;
+                };
+
+                let tile = self.mem[self.i as usize + dy as usize];
+                let pixel = (tile << dx) & 0b10000000 != 0;
+
+                if pixel {
+                    let disp_i = y * 64 + x;
+
+                    if self.display[disp_i] {
+                        self.vw(0xf, 1)
+                    }
+
+                    self.display[disp_i] = !self.display[disp_i];
                 }
             }
         }
@@ -293,16 +308,17 @@ impl Chip8 {
     }
 
     pub fn down(&mut self, v: u8) {
-        if let State::GetKey(x) = self.state {
-            self.vw(x, v);
-            self.state = State::Default;
-        };
+        if !self.key_pressed[v as usize] {
+            if let State::GetKey(x) = self.state {
+                self.vw(x, v);
+                self.state = State::Default;
+            };
 
-        self.key_pressed[v as usize] = true;
+            self.key_pressed[v as usize] = true;
+        }
     }
 
     pub fn up(&mut self, v: u8) {
-        println!("Up {:#04x}", v);
         self.key_pressed[v as usize] = false;
     }
 
