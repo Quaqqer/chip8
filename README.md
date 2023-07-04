@@ -1,5 +1,7 @@
 # chip8
 
+![My drawing of a CHIP-8 logo](https://github.com/Quaqqer/chip8/blob/master/res/chip8.png)
+
 This is my implementation of a CHIP-8 emulator.
 It was a fun bite-sized project I finished in a day to introduce me to
 emulators.
