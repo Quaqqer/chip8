@@ -1,5 +1,6 @@
-use chip8::Chip8;
+mod chip8;
 
+use chip8::Chip8;
 use game_loop::{
     game_loop,
     winit::{
@@ -9,11 +10,9 @@ use game_loop::{
         window::WindowBuilder,
     },
 };
-
 use pixels::{Pixels, SurfaceTexture};
 
-mod chip8;
-
+/// The struct used for the game loop, needs data for the emulator and display
 struct Game {
     chip8: Chip8,
     pixels: Pixels,
@@ -21,6 +20,13 @@ struct Game {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    let rom = std::fs::read(
+        args.get(1)
+            .expect("No rom passed, needs a chip-8 rom path as a second argument")
+            .to_string(),
+    )
+    .expect("Could not read the rom passed, maybe you passed a wrong path?");
 
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -34,13 +40,13 @@ fn main() {
             height: 320.,
         }))
         .build(&event_loop)
-        .unwrap();
+        .expect("Could not create a window");
 
-    let rom = std::fs::read(args[1].to_string()).unwrap();
     let chip8 = Chip8::new(rom);
 
     let surface_texture = SurfaceTexture::new(640, 320, &window);
-    let pixels = Pixels::new(64, 32, surface_texture).unwrap();
+    let pixels =
+        Pixels::new(64, 32, surface_texture).expect("Could not instantiate Pixels library");
 
     let game = Game { chip8, pixels };
 
@@ -73,7 +79,7 @@ fn main() {
             }
 
             if let Err(err) = g.game.pixels.render() {
-                eprintln!("pixels.render {}", err);
+                eprintln!("Render error: {}", err);
                 panic!();
             }
         },
@@ -83,7 +89,10 @@ fn main() {
                 event: window_event,
             } if *window_id == g.window.id() => match window_event {
                 WindowEvent::Resized(PhysicalSize { width, height }) => {
-                    g.game.pixels.resize_surface(*width, *height).unwrap();
+                    g.game
+                        .pixels
+                        .resize_surface(*width, *height)
+                        .expect("Could not resize surface");
                 }
                 WindowEvent::CloseRequested => g.exit(),
                 WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
@@ -105,6 +114,7 @@ fn main() {
     );
 }
 
+/// Map keys to numbers, uses the same layout as chip8 but around rows 1234, qwer, asdf, and zxcv.
 fn key_to_hex(virtual_key_code: VirtualKeyCode) -> Option<u8> {
     match virtual_key_code {
         VirtualKeyCode::Key1 => Some(0x1),
