@@ -8,6 +8,9 @@ I've tried the emulator with some games and it seems to behave correctly.
 It passes the [chip8-test-suite](https://github.com/Timendus/chip8-test-suite)
 by Timendus and I've tried it with the Tetris rom as well as Breakout.
 
+Audio has not been implemented. Neither does it implement the drawing quirk of
+the original chip8 being limited in the amount of sprite draws.
+
 # Installing
 
 To install simply run the commands
