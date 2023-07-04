@@ -135,12 +135,15 @@ impl Chip8 {
             }
             (0x8, x, y, 0x1) => {
                 self.vw(x, self.vr(x) | self.vr(y));
+                self.vw(0xf, 0x0); // CHIP-8 quirk
             }
             (0x8, x, y, 0x2) => {
                 self.vw(x, self.vr(x) & self.vr(y));
+                self.vw(0xf, 0x0); // CHIP-8 quirk
             }
             (0x8, x, y, 0x3) => {
                 self.vw(x, self.vr(x) ^ self.vr(y));
+                self.vw(0xf, 0x0); // CHIP-8 quirk
             }
             (0x8, x, y, 0x4) => {
                 let (res, of) = self.vr(x).overflowing_add(self.vr(y));
@@ -153,7 +156,8 @@ impl Chip8 {
                 self.vw(x, res);
                 self.vw(0xf, if unborrowed { 1 } else { 0 });
             }
-            (0x8, x, _, 0x6) => {
+            (0x8, x, y, 0x6) => {
+                self.vw(x, self.vr(y)); // CHIP-8 quirk
                 let vx = self.vr(x);
                 self.vw(x, vx >> 1);
                 self.vw(0xf, vx & 0b1);
@@ -164,7 +168,8 @@ impl Chip8 {
                 self.vw(x, res);
                 self.vw(0xf, if unborrowed { 1 } else { 0 });
             }
-            (0x8, x, _, 0xe) => {
+            (0x8, x, y, 0xe) => {
+                self.vw(x, self.vr(y)); // CHIP-8 quirk
                 let vx = self.vr(x);
                 self.vw(x, vx << 1);
                 self.vw(0xf, if vx & 0x80 != 0 { 1 } else { 0 });
@@ -201,7 +206,6 @@ impl Chip8 {
                 self.vw(x, self.delay_timer);
             }
             (0xf, x, 0x0, 0xa) => {
-                println!("Waiting for key input");
                 self.state = State::GetKey(x);
             }
             (0xf, x, 0x1, 0x1) => {
@@ -217,7 +221,7 @@ impl Chip8 {
                 self.i += self.vr(x) as u16;
             }
             (0xf, x, 0x2, 0x9) => {
-                self.i = 5 * x as u16;
+                self.i = 5 * self.vr(x) as u16;
             }
             (0xf, x, 0x3, 0x3) => {
                 let mut curr = self.vr(x);
@@ -231,30 +235,35 @@ impl Chip8 {
                 for i in 0x0..=x {
                     self.mem[self.i as usize + i as usize] = self.vs[i as usize];
                 }
+                self.i += 1; // CHIP-8 quirk
             }
             (0xf, x, 0x6, 0x5) => {
                 for i in 0x0..=x {
                     self.vs[i as usize] = self.mem[self.i as usize + i as usize];
                 }
+                self.i += 1; // CHIP-8 quirk
             }
             _ => panic!("Unimplemented instruction {:#06x}", abcd),
         }
     }
 
     fn clear_display(&mut self) {
-        println!("Clear");
         self.display.fill(false);
     }
 
-    fn draw(&mut self, x_offset: u8, y_offset: u8, height: u8) {
+    fn draw(&mut self, mut x_offset: u8, mut y_offset: u8, height: u8) {
         self.vw(0xf, 0);
 
-        for dy in 0..height {
-            for dx in 0..8 {
-                let x = (x_offset as usize + dx as usize) % 64;
-                let y = (y_offset as usize + dy as usize) % 32;
+        x_offset %= 64;
+        y_offset %= 32;
 
-                if !(x < 64 && y < 32) {
+        for dy in 0..height {
+            let y = y_offset as usize + dy as usize;
+
+            for dx in 0..8 {
+                let x = x_offset as usize + dx as usize;
+
+                if 64 <= x || 32 <= y {
                     continue;
                 };
 
