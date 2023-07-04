@@ -30,3 +30,18 @@ and to run it run the commands
 ```bash
 $ chip8 <path/to/rom>
 ```
+
+---
+
+If you wish to run it without installing simply run
+
+```bash
+$ git clone https://github.com/Quaqqer/chip8.git
+$ cd chip8
+$ cargo run <path/to/rom>
+```
+
+---
+
+It has also been packaged for Nix users, but if you use Nix I hope you know how
+to install it yourself with the provided flake.
