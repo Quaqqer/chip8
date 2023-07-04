@@ -33,7 +33,6 @@ fn main() {
             width: 640.,
             height: 320.,
         }))
-        .with_resizable(false)
         .build(&event_loop)
         .unwrap();
 
