@@ -69,12 +69,16 @@ fn main() {
             for x in 0..64 {
                 for y in 0..32 {
                     let set = g.game.chip8.display[y * 64 + x];
-                    let color = if set { 0xff } else { 0x00 };
 
-                    frame[(y * 64 + x) * 4 + 0] = color;
-                    frame[(y * 64 + x) * 4 + 1] = color;
-                    frame[(y * 64 + x) * 4 + 2] = color;
-                    frame[(y * 64 + x) * 4 + 3] = 0xff;
+                    let color_on: [u8; 4] = [0x89, 0xB4, 0xFA, 0xFF];
+                    let color_off: [u8; 4] = [0x1E, 0x1E, 0x2E, 0xFF];
+
+                    let pixel_i = (y * 64 + x) * 4;
+                    frame[pixel_i..pixel_i + 4].copy_from_slice(if set {
+                        &color_on
+                    } else {
+                        &color_off
+                    });
                 }
             }
 
