@@ -162,7 +162,7 @@ impl Chip8 {
 
             // Increase vX by NN
             (0x7, x, _, _) => {
-                self.vw(x, self.vr(x).overflowing_add(cd).0);
+                self.vw(x, self.vr(x).wrapping_add(cd));
             }
 
             // Write vY to vX
@@ -199,7 +199,7 @@ impl Chip8 {
             // borrow
             (0x8, x, y, 0x5) => {
                 let unborrowed = self.vr(x) > self.vr(y);
-                let (res, _) = self.vr(x).overflowing_sub(self.vr(y));
+                let res = self.vr(x).wrapping_sub(self.vr(y));
                 self.vw(x, res);
                 self.vw(0xf, if unborrowed { 1 } else { 0 });
             }
@@ -297,7 +297,7 @@ impl Chip8 {
 
             // Increment I by vX
             (0xf, x, 0x1, 0xe) => {
-                self.i = self.i.overflowing_add(self.vr(x) as u16).0;
+                self.i = self.i.wrapping_add(self.vr(x) as u16);
             }
 
             // Get sprite for character X, stored in the beginning of memory
