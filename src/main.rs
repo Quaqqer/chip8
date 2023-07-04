@@ -68,7 +68,7 @@ fn main() {
 
             for x in 0..64 {
                 for y in 0..32 {
-                    let set = g.game.chip8.display[y * 64 + x];
+                    let set = g.game.chip8.display()[y * 64 + x];
 
                     let color_on: [u8; 4] = [0x89, 0xB4, 0xFA, 0xFF];
                     let color_off: [u8; 4] = [0x1E, 0x1E, 0x2E, 0xFF];

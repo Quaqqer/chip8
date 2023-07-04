@@ -17,15 +17,15 @@ use std::fmt;
 /// * `state`: The state of the emulator, used for blocking key grabs
 pub struct Chip8 {
     mem: [u8; 4096],
-    pub display: [bool; 64 * 32],
+    display: [bool; 64 * 32],
     pc: u16,
     i: u16,
     stack: Vec<u16>,
-    pub delay_timer: u8,
-    pub sound_timer: u8,
+    delay_timer: u8,
+    sound_timer: u8,
     vs: [u8; 16],
     key_pressed: [bool; 16],
-    pub state: State,
+    state: State,
 }
 
 // Custom debug print for Chip8 because printing the whole memory is not reasonable
@@ -435,5 +435,10 @@ impl Chip8 {
         if self.sound_timer > 0 {
             self.sound_timer -= 1;
         }
+    }
+
+    /// Get the display, indexed [y * 64 + 32]
+    pub fn display(&self) -> &[bool; 64 * 32] {
+        &self.display
     }
 }
