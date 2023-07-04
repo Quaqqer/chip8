@@ -56,6 +56,10 @@ fn main() {
 
             for _ in 0..16666 {
                 g.game.chip8.cycle();
+
+                if let chip8::State::GetKey(_) = g.game.chip8.state {
+                    break;
+                }
             }
         },
         |g| {

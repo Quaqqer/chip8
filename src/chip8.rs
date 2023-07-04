@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::fmt;
+
 pub struct Chip8 {
     mem: [u8; 4096],
     pub display: [bool; 64 * 32],
@@ -10,10 +12,25 @@ pub struct Chip8 {
     pub sound_timer: u8,
     vs: [u8; 16],
     key_pressed: [bool; 16],
-    state: State,
+    pub state: State,
 }
 
-enum State {
+impl fmt::Debug for Chip8 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Chip8")
+            .field("pc", &self.pc)
+            .field("i", &self.i)
+            .field("delay", &self.delay_timer)
+            .field("sound", &self.sound_timer)
+            .field("registers", &self.vs)
+            .field("pressed", &self.key_pressed)
+            .field("state", &self.state)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+pub enum State {
     Default,
     GetKey(u8),
 }
@@ -67,7 +84,6 @@ impl Chip8 {
         };
 
         let abcd = self.fetch16();
-        // Opcode == 0xABCD
         let a = ((abcd >> 12) & 0x0f) as u8;
         let b = ((abcd >> 8) & 0x0f) as u8;
         let c = ((abcd >> 4) & 0x0f) as u8;
@@ -139,7 +155,7 @@ impl Chip8 {
             }
             (0x8, x, _, 0x6) => {
                 let vx = self.vr(x);
-                self.vw(x, x >> 1);
+                self.vw(x, vx >> 1);
                 self.vw(0xf, vx & 0b1);
             }
             (0x8, x, y, 0x7) => {
@@ -150,7 +166,7 @@ impl Chip8 {
             }
             (0x8, x, _, 0xe) => {
                 let vx = self.vr(x);
-                self.vw(x, x << 1);
+                self.vw(x, vx << 1);
                 self.vw(0xf, if vx & 0x80 != 0 { 1 } else { 0 });
             }
             (0x9, x, y, 0x0) => {
@@ -232,8 +248,11 @@ impl Chip8 {
     fn draw(&mut self, x_offset: u8, y_offset: u8, height: u8) {
         for dy in 0..height {
             for dx in 0..8 {
-                if 7 - dx + x_offset < 64 {
-                    self.display[(dy + y_offset) as usize * 64 + (7 - dx + x_offset) as usize] =
+                if (7 - dx as usize + x_offset as usize) < 64
+                    && (dy as usize + y_offset as usize) < 32
+                {
+                    self.display[(dy as usize + y_offset as usize) * 64
+                        + (7 - dx as usize + x_offset as usize)] |=
                         (self.mem[self.i as usize + dy as usize] >> dx) & 0x1 == 0x1;
                 }
             }
@@ -274,7 +293,6 @@ impl Chip8 {
     }
 
     pub fn down(&mut self, v: u8) {
-        println!("Pressed {:#04x}", v);
         if let State::GetKey(x) = self.state {
             self.vw(x, v);
             self.state = State::Default;
@@ -284,6 +302,7 @@ impl Chip8 {
     }
 
     pub fn up(&mut self, v: u8) {
+        println!("Up {:#04x}", v);
         self.key_pressed[v as usize] = false;
     }
 
