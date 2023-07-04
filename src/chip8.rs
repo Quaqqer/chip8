@@ -227,7 +227,7 @@ impl Chip8 {
     fn draw(&mut self, x_offset: u8, y_offset: u8, height: u8) {
         for dy in 0..height {
             for dx in 0..8 {
-                self.display[(dy + y_offset) as usize * 64 + (dx + x_offset) as usize] =
+                self.display[(dy + y_offset) as usize * 64 + (7 - dx + x_offset) as usize] =
                     (self.mem[self.i as usize + dy as usize] >> dx) & 0x1 == 0x1;
             }
         }
