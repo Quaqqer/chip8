@@ -1,66 +1,129 @@
 use chip8::Chip8;
-use pixels::{Pixels, SurfaceTexture};
-use winit::{
-    dpi::{LogicalSize, Size},
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+
+use game_loop::{
+    game_loop,
+    winit::{
+        dpi::{LogicalSize, PhysicalSize, Size},
+        event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+        event_loop::EventLoop,
+        window::WindowBuilder,
+    },
 };
+
+use pixels::{Pixels, SurfaceTexture};
 
 mod chip8;
 
+struct Game {
+    chip8: Chip8,
+    pixels: Pixels,
+}
+
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_resizable(false)
+        .with_title("CHIP8 Emulator")
+        .with_min_inner_size(Size::Logical(LogicalSize {
+            width: 64.,
+            height: 32.,
+        }))
         .with_inner_size(Size::Logical(LogicalSize {
             width: 640.,
             height: 320.,
         }))
+        .with_resizable(false)
         .build(&event_loop)
         .unwrap();
 
+    let rom = std::fs::read(args[1].to_string()).unwrap();
+    let chip8 = Chip8::new(rom);
+
     let surface_texture = SurfaceTexture::new(640, 320, &window);
-    let mut pixels = Pixels::new(64, 32, surface_texture).unwrap();
+    let pixels = Pixels::new(64, 32, surface_texture).unwrap();
 
-    let rom = std::fs::read("IBM Logo.ch8").unwrap();
+    let game = Game { chip8, pixels };
 
-    let mut chip8 = Chip8::new(rom);
+    game_loop(
+        event_loop,
+        window,
+        game,
+        60,
+        0.1,
+        |g| {
+            g.game.chip8.decrease_timers();
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+            for _ in 0..16666 {
+                g.game.chip8.cycle();
+            }
+        },
+        |g| {
+            let frame = g.game.pixels.frame_mut();
 
-        match event {
-            Event::RedrawRequested(_) => {
-                let frame = pixels.frame_mut();
+            for x in 0..64 {
+                for y in 0..32 {
+                    let set = g.game.chip8.display[y * 64 + x];
+                    let color = if set { 0xff } else { 0x00 };
 
-                for x in 0..64 {
-                    for y in 0..32 {
-                        let set = chip8.display[y * 64 + x];
-                        let color = if set {0xff} else {0x00};
-                        frame[(y * 64 + x) * 4 + 0] = color;
-                        frame[(y * 64 + x) * 4 + 1] = color;
-                        frame[(y * 64 + x) * 4 + 2] = color;
-                        frame[(y * 64 + x) * 4 + 3] = 0xff;
-                    }
-                }
-
-                if let Err(err) = pixels.render() {
-                    eprintln!("pixels.render {:?}", err);
-                    *control_flow = ControlFlow::Exit;
-                    return;
+                    frame[(y * 64 + x) * 4 + 0] = color;
+                    frame[(y * 64 + x) * 4 + 1] = color;
+                    frame[(y * 64 + x) * 4 + 2] = color;
+                    frame[(y * 64 + x) * 4 + 3] = 0xff;
                 }
             }
 
+            if let Err(err) = g.game.pixels.render() {
+                eprintln!("pixels.render {}", err);
+                panic!();
+            }
+        },
+        |g, e| match e {
             Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
                 window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
+                event: window_event,
+            } if *window_id == g.window.id() => match window_event {
+                WindowEvent::Resized(PhysicalSize { width, height }) => {
+                    g.game.pixels.resize_surface(*width, *height).unwrap();
+                }
+                WindowEvent::CloseRequested => g.exit(),
+                WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+                    Some(k) => {
+                        if let Some(hex) = key_to_hex(k) {
+                            match input.state {
+                                ElementState::Pressed => g.game.chip8.down(hex),
+                                ElementState::Released => g.game.chip8.up(hex),
+                            }
+                        }
+                    }
+                    None => (),
+                },
+                _ => (),
+            },
 
             _ => (),
-        }
+        },
+    );
+}
 
-        chip8.cycle();
-        window.request_redraw();
-    })
+fn key_to_hex(virtual_key_code: VirtualKeyCode) -> Option<u8> {
+    match virtual_key_code {
+        VirtualKeyCode::Key1 => Some(0x0),
+        VirtualKeyCode::Key2 => Some(0x1),
+        VirtualKeyCode::Key3 => Some(0x2),
+        VirtualKeyCode::Key4 => Some(0x3),
+        VirtualKeyCode::Q => Some(0x4),
+        VirtualKeyCode::W => Some(0x5),
+        VirtualKeyCode::E => Some(0x6),
+        VirtualKeyCode::R => Some(0x7),
+        VirtualKeyCode::A => Some(0x8),
+        VirtualKeyCode::S => Some(0x9),
+        VirtualKeyCode::D => Some(0xA),
+        VirtualKeyCode::F => Some(0xB),
+        VirtualKeyCode::Z => Some(0xC),
+        VirtualKeyCode::X => Some(0xD),
+        VirtualKeyCode::C => Some(0xE),
+        VirtualKeyCode::V => Some(0xF),
+        _ => None,
+    }
 }

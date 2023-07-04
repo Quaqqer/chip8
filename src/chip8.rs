@@ -6,10 +6,16 @@ pub struct Chip8 {
     pc: u16,
     i: u16,
     stack: Vec<u16>,
-    delay_timer: u8,
-    sound_timer: u8,
+    pub delay_timer: u8,
+    pub sound_timer: u8,
     vs: [u8; 16],
     key_pressed: [bool; 16],
+    state: State,
+}
+
+enum State {
+    Default,
+    GetKey(u8),
 }
 
 static FONT: [u8; 5 * 16] = [
@@ -55,31 +61,26 @@ impl Chip8 {
     }
 
     pub fn cycle(&mut self) {
+        // Get key is blocking
+        if let State::GetKey(_) = self.state {
+            return;
+        };
+
         let abcd = self.fetch16();
         // Opcode == 0xABCD
         let a = ((abcd >> 12) & 0x0f) as u8;
         let b = ((abcd >> 8) & 0x0f) as u8;
         let c = ((abcd >> 4) & 0x0f) as u8;
         let d = ((abcd >> 0) & 0x0f) as u8;
-        let ab = ((abcd >> 8) & 0xff) as u8;
-        let bc = ((abcd >> 4) & 0xff) as u8;
         let cd = ((abcd >> 0) & 0xff) as u8;
-        let abc = ((abcd >> 4) & 0xfff) as u16;
         let bcd = ((abcd >> 0) & 0xfff) as u16;
 
-        println!("{:#06x}", abcd);
         match (a, b, c, d) {
             (0x0, 0x0, 0xe, 0x0) => {
                 self.clear_display();
             }
             (0x0, 0x0, 0xe, 0xe) => {
-                // Return
-                todo!();
-            }
-            (0x0, _, _, _) => {
-                // Call machine code routine
-                let addr = bcd;
-                todo!();
+                self.pc = self.stack.pop().unwrap();
             }
             (0x1, _, _, _) => {
                 // Jump to address NNN
@@ -87,8 +88,8 @@ impl Chip8 {
             }
             (0x2, _, _, _) => {
                 // Call subroutine NNN
-                let addr = bcd;
-                todo!();
+                self.stack.push(self.pc);
+                self.pc = bcd;
             }
             (0x3, _, _, _) => {
                 if self.vr(b) == cd {
@@ -111,7 +112,7 @@ impl Chip8 {
             }
             (0x7, x, _, _) => {
                 let nn = cd;
-                self.vw(x, self.vr(x) + nn);
+                self.vw(x, self.vr(x).overflowing_add(nn).0);
             }
             (0x8, x, y, 0x0) => {
                 self.vw(x, self.vr(y));
@@ -164,8 +165,8 @@ impl Chip8 {
                 self.pc = self.vr(0x0) as u16 + bcd;
             }
             (0xc, x, _, _) => {
-                let rand: u8 = todo!();
-                self.vw(x, rand & self.vr(0x0));
+                let random = rand::random::<u8>();
+                self.vw(x, random & self.vr(0x0));
             }
             (0xd, x, y, n) => {
                 self.draw(self.vr(x), self.vr(y), n);
@@ -184,12 +185,16 @@ impl Chip8 {
                 self.vw(x, self.delay_timer);
             }
             (0xf, x, 0x0, 0xa) => {
-                self.vw(x, self.get_key());
+                println!("Waiting for key input");
+                self.state = State::GetKey(x);
             }
             (0xf, x, 0x1, 0x1) => {
-                self.delay_timer = self.vr(x);
+                self.vw(x, self.delay_timer);
             }
             (0xf, x, 0x1, 0x5) => {
+                self.delay_timer = self.vr(x);
+            }
+            (0xf, x, 0x1, 0x8) => {
                 self.sound_timer = self.vr(x);
             }
             (0xf, x, 0x1, 0xe) => {
@@ -216,7 +221,7 @@ impl Chip8 {
                     self.vs[i as usize] = self.mem[self.i as usize + i as usize];
                 }
             }
-            _ => panic!("Unimplemented instruction"),
+            _ => panic!("Unimplemented instruction {:#06x}", abcd),
         }
     }
 
@@ -227,14 +232,12 @@ impl Chip8 {
     fn draw(&mut self, x_offset: u8, y_offset: u8, height: u8) {
         for dy in 0..height {
             for dx in 0..8 {
-                self.display[(dy + y_offset) as usize * 64 + (7 - dx + x_offset) as usize] =
-                    (self.mem[self.i as usize + dy as usize] >> dx) & 0x1 == 0x1;
+                if 7 - dx + x_offset < 64 {
+                    self.display[(dy + y_offset) as usize * 64 + (7 - dx + x_offset) as usize] =
+                        (self.mem[self.i as usize + dy as usize] >> dx) & 0x1 == 0x1;
+                }
             }
         }
-    }
-
-    fn get_key(&self) -> u8 {
-        todo!()
     }
 
     fn vr(&self, addr: u8) -> u8 {
@@ -266,6 +269,31 @@ impl Chip8 {
             sound_timer: 0,
             vs: [0; 16],
             key_pressed: [false; 16],
+            state: State::Default,
+        }
+    }
+
+    pub fn down(&mut self, v: u8) {
+        println!("Pressed {:#04x}", v);
+        if let State::GetKey(x) = self.state {
+            self.vw(x, v);
+            self.state = State::Default;
+        };
+
+        self.key_pressed[v as usize] = true;
+    }
+
+    pub fn up(&mut self, v: u8) {
+        self.key_pressed[v as usize] = false;
+    }
+
+    pub fn decrease_timers(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
         }
     }
 }
