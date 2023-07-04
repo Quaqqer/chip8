@@ -187,7 +187,7 @@ impl Chip8 {
             }
             (0xc, x, _, _) => {
                 let random = rand::random::<u8>();
-                self.vw(x, random & self.vr(0x0));
+                self.vw(x, random & cd);
             }
             (0xd, x, y, n) => {
                 self.draw(self.vr(x), self.vr(y), n);
@@ -218,10 +218,10 @@ impl Chip8 {
                 self.sound_timer = self.vr(x);
             }
             (0xf, x, 0x1, 0xe) => {
-                self.i += self.vr(x) as u16;
+                self.i = self.i.overflowing_add(self.vr(x) as u16).0;
             }
             (0xf, x, 0x2, 0x9) => {
-                self.i = 5 * self.vr(x) as u16;
+                self.i = 0 + 5 * self.vr(x) as u16;
             }
             (0xf, x, 0x3, 0x3) => {
                 let mut curr = self.vr(x);
