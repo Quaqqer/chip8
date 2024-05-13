@@ -77,9 +77,7 @@ impl Chip8 {
 
     /// Read a word
     fn read16(&self, addr: u16) -> u16 {
-        let first = self.read8(addr) as u16;
-        let second = self.read8(addr + 1) as u16;
-        (first << 8) + second
+        u16::from_be_bytes([self.read8(addr), self.read8(addr + 1)])
     }
 
     /// Fetch a byte and increment the program counter
@@ -388,7 +386,7 @@ impl Chip8 {
         let mut mem = [0; 4096];
 
         mem[..FONT.len()].copy_from_slice(&FONT);
-        mem[0x200..rom.len()].copy_from_slice(&rom);
+        mem[0x200..0x200 + rom.len()].copy_from_slice(&rom);
 
         Self {
             mem,
