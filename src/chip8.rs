@@ -387,13 +387,8 @@ impl Chip8 {
     pub fn new(rom: Vec<u8>) -> Self {
         let mut mem = [0; 4096];
 
-        for i in 0..FONT.len() {
-            mem[i] = FONT[i];
-        }
-
-        for i in 0..rom.len() {
-            mem[i + 0x200] = rom[i];
-        }
+        mem[..FONT.len()].copy_from_slice(&FONT);
+        mem[0x200..rom.len()].copy_from_slice(&rom);
 
         Self {
             mem,
