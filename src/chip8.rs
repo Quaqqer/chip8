@@ -196,7 +196,7 @@ impl Chip8 {
             // Subtract vX by vY, set flag to the borrow bit, set if subtraction did not require a
             // borrow
             (0x8, x, y, 0x5) => {
-                let unborrowed = self.vr(x) > self.vr(y);
+                let unborrowed = self.vr(x) >= self.vr(y);
                 let res = self.vr(x).wrapping_sub(self.vr(y));
                 self.vw(x, res);
                 self.vw(0xf, if unborrowed { 1 } else { 0 });
@@ -212,7 +212,7 @@ impl Chip8 {
 
             // Subtract vY by vX and store in vX, set flag to borrow bit
             (0x8, x, y, 0x7) => {
-                let unborrowed = self.vr(y) > self.vr(x);
+                let unborrowed = self.vr(y) >= self.vr(x);
                 let (res, _) = self.vr(y).overflowing_sub(self.vr(x));
                 self.vw(x, res);
                 self.vw(0xf, if unborrowed { 1 } else { 0 });
