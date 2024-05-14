@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::identity_op)]
 
 use std::fmt;
 
@@ -108,7 +108,7 @@ impl Chip8 {
         let c = ((abcd >> 4) & 0x0f) as u8;
         let d = ((abcd >> 0) & 0x0f) as u8;
         let cd = ((abcd >> 0) & 0xff) as u8;
-        let bcd = ((abcd >> 0) & 0xfff) as u16;
+        let bcd = (abcd >> 0) & 0xfff;
 
         match (a, b, c, d) {
             // Clear the display
@@ -300,7 +300,7 @@ impl Chip8 {
 
             // Get sprite for character X, stored in the beginning of memory
             (0xf, x, 0x2, 0x9) => {
-                self.i = 0 + 5 * self.vr(x) as u16;
+                self.i = 5 * self.vr(x) as u16;
             }
 
             // Write decimal digits to memory at I, memory[I] = 100's digit, memory[I+1] = 10's

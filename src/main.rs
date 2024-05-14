@@ -23,8 +23,7 @@ fn main() {
 
     let rom = std::fs::read(
         args.get(1)
-            .expect("No rom passed, needs a chip-8 rom path as a second argument")
-            .to_string(),
+            .expect("No rom passed, needs a chip-8 rom path as a second argument"),
     )
     .expect("Could not read the rom passed, maybe you passed a wrong path?");
 
@@ -99,8 +98,8 @@ fn main() {
                         .expect("Could not resize surface");
                 }
                 WindowEvent::CloseRequested => g.exit(),
-                WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
-                    Some(k) => {
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if let Some(k) = input.virtual_keycode {
                         if let Some(hex) = key_to_hex(k) {
                             match input.state {
                                 ElementState::Pressed => g.game.chip8.down(hex),
@@ -108,8 +107,7 @@ fn main() {
                             }
                         }
                     }
-                    None => (),
-                },
+                }
                 _ => (),
             },
 
