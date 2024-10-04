@@ -1,11 +1,4 @@
-[package]
-name = "chip8"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-pixels = "0.13.0"
-rand = "0.8.5"
-game-loop = { version = "0.10.2", features = ["winit"] }
+[workspace]
+members = ["crates/chip8", "crates/chip8-gui", "crates/chip8-wasm"]
+default-members = ["crates/chip8-gui"]
+resolver = "2"

@@ -1,5 +1,3 @@
-mod chip8;
-
 use chip8::Chip8;
 use game_loop::{
     game_loop,
